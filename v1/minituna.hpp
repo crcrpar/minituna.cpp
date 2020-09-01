@@ -11,6 +11,8 @@
 #include "absl/strings/str_join.h"
 #include "absl/types/any.h"
 
+#include "glog/logging.h"
+
 
 namespace minituna_v1 {
 
