@@ -1,4 +1,4 @@
-#include "minituna.hpp"
+#include "v1/minituna.hpp"
 
 #include <assert.h>
 #include <algorithm>
@@ -92,6 +92,7 @@ auto Trial::SuggestFloat(const std::string & name, const double& low, const doub
   const absl::flat_hash_map<std::string, absl::any> distribution = {{"low", low_any}, {"high", high_any}};
   auto param = study_ptr_->SampleIndependent(trial, name, distribution);
   study_ptr_->GetStorage().SetTrialParam(trial_id_, name, param);
+  return param;
 }
 
 Sampler::Sampler(): bitgen_{} {}
