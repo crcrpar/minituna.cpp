@@ -18,3 +18,7 @@ jobs:
     - name: Build
       run: |
         bazelisk build //...
+
+    - name: Run
+      run: |
+        ./bazel-bin/v1_example --n_trials=10
