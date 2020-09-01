@@ -3,6 +3,12 @@
 #include <vector>
 #include <iostream>
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+
+
+ABSL_FLAG(uint64_t, n_trials, 100, "The number of trials");
+
 
 auto objective(minituna_v1::Trial trial) -> const double {
   const double x = trial.SuggestFloat("x", 0, 10);
@@ -11,9 +17,11 @@ auto objective(minituna_v1::Trial trial) -> const double {
 }
 
 
-auto main() -> int {
+auto main(int argc, char** argv) -> int {
+  absl::ParseCommandLine(argc, argv);
+
   auto study = minituna_v1::CreateStudy();
-  study.Optimize(objective, 100);
+  study.Optimize(objective, absl::GetFlag(FLAGS_n_trials));
 
   const std::vector<minituna_v1::FrozenTrial> all_trials = study.GetStorage().GetAllTrials();
   const minituna_v1::FrozenTrial best_trial = *(std::min_element(

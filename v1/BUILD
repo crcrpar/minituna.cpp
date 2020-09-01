@@ -23,6 +23,8 @@ cc_binary(
     deps = [
         ":minituna_v1",
         "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/functional:function_ref",
         "@com_google_absl//absl/random:random",
         "@com_google_absl//absl/strings",
