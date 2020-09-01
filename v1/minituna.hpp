@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/functional/function_ref.h"
 #include "absl/random/random.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/str_join.h"
@@ -37,6 +38,7 @@ class FrozenTrial {
 
   auto IsFinished() const noexcept -> const bool;
   auto Value() const noexcept -> const double;
+  auto Number() const noexcept -> const size_t;
   auto SetValue(const double&) noexcept -> void;
   auto SetState(const TrialState&) noexcept -> void;
   auto SetParam(const std::string &, const absl::any) noexcept -> void;
@@ -50,22 +52,22 @@ class Storage {
   Storage();
   auto CreateNewTrial() noexcept -> const size_t;
   auto GetTrial(const size_t&) const -> FrozenTrial;
-  auto GetBestTrial() const noexcept -> const FrozenTrial;
   auto SetTrialValue(const size_t&, const double&) noexcept -> void;
   auto SetTrialState(const size_t&, const TrialState&) noexcept -> void;
   auto SetTrialParam(const size_t&, const std::string &, const absl::any&) -> void;
+  auto GetAllTrials() const noexcept -> const std::vector<FrozenTrial>;
 };
 
 class Study;
 
 class Trial {
  private:
-  std::shared_ptr<Study> study_ptr_;
+  Study * study_ptr_;
   size_t trial_id_;
   TrialState state_;
 
  public:
-  Trial(std::shared_ptr<Study>, const size_t&);
+  Trial(Study *, const size_t&);
   auto SuggestFloat(
       const std::string &,
       const double &,
@@ -95,7 +97,6 @@ class Study {
  public:
   Study();
   Study(const Storage &, const Sampler &);
-  auto GetBestTrial() const -> const FrozenTrial;
   auto GetStorage() noexcept -> Storage;
   auto SampleIndependent(
       FrozenTrial &,
@@ -103,10 +104,9 @@ class Study {
       const absl::flat_hash_map<std::string, absl::any> &
   ) -> const double;
 
-  template <typename Func>
-  auto Optimize(const Func, const size_t &) -> void;
+  auto Optimize(const absl::FunctionRef<const double(Trial)>, const size_t &) -> void;
 };
 
-auto CreateStudy(const Storage *, const Sampler *) -> Study;
+auto CreateStudy() -> Study;
 
 } // namespace minituna_v1
