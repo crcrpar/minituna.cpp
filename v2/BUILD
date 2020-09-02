@@ -4,13 +4,14 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-    name = "minituna_v1",
+    name = "minituna_v2",
     deps = [
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/functional:function_ref",
         "@com_google_absl//absl/random:random",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:any",
+        "@com_google_absl//absl/types:variant",
     ],
     srcs = ["minituna.cpp"],
     hdrs = ["minituna.hpp"],
