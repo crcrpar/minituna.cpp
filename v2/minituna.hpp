@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <initializer_list>
 #include <list>
 #include <memory>
 #include <string>
@@ -10,8 +11,8 @@
 #include "absl/random/random.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/str_join.h"
-#include "abs/types/any.h"
-#include "abs/types/variant.h"
+#include "absl/types/any.h"
+#include "absl/types/variant.h"
 
 
 namespace minituna_v2 {
@@ -25,8 +26,6 @@ enum class TrialState {
 template <typename DerivedDist>
 class BaseDist {
  public:
-  template <typename... T>
-  BaseDist(T... args);
 
   template <typename T1>
   auto ToInternalRepr(const T1 & external_repr) const -> double {
@@ -42,6 +41,9 @@ class UniformDist : public BaseDist<UniformDist> {
  public:
   UniformDist(double low, double high);
 
+  auto Low() const noexcept -> const double;
+  auto High() const noexcept -> const double;
+
   template <typename T1>
   auto ToInternalReprImpl(const T1 & external_repr) const -> double;
 
@@ -54,6 +56,9 @@ class UniformDist : public BaseDist<UniformDist> {
 class LogUniformDist : public BaseDist<LogUniformDist> {
  public:
   LogUniformDist(double low, double high);
+
+  auto Low() const noexcept -> const double;
+  auto High() const noexcept -> const double;
 
   template <typename T1>
   auto ToInternalReprImpl(const T1 & external_repr) const -> double;
@@ -68,6 +73,9 @@ class IntUniformDist : public BaseDist<IntUniformDist> {
  public:
   IntUniformDist(int low, int high);
 
+  auto Low() const noexcept -> const int;
+  auto High() const noexcept -> const int;
+
   template <typename T1>
   auto ToInternalReprImpl(const T1 & external_repr) const -> double;
 
@@ -79,15 +87,17 @@ class IntUniformDist : public BaseDist<IntUniformDist> {
 
 class CategoricalDist : public BaseDist<CategoricalDist> {
  public:
-  CategoricalDist(const std::string<absl::variant<bool, int, double, std::string> & choices);
+  CategoricalDist(std::initializer_list<absl::variant<bool, int, double, std::string>> choices);
 
-  template <typename T>
+  auto Choices() const noexcept -> const std::list<absl::variant<bool, int, double, std::string>>;
+
+  template <typename T1>
   auto ToInternalReprImpl(const T1 & external_repr) const -> double;
 
   auto ToExternalReprImpl(const double & internal_repr) const -> absl::any;
 
  private:
-  std::list<absl::variant<bool, int, double, std::string> choices_;
+  std::vector<absl::variant<bool, int, double, std::string>> choices_;
 };
 
 class FrozenTrial {
@@ -96,13 +106,16 @@ class FrozenTrial {
 
   auto IsFinished() const noexcept -> const bool;
   auto Value() const noexcept -> const double;
-  auto GetParams() const -> const absl::
+  auto GetParams() const -> const absl::flat_hash_map<std::string, absl::any>
+  auto SetValue(const double&) noexcept -> void;
+  auto SetState(const TrialState&) noexcept -> void;
+  auto SetParam(const std::string &, const absl::any) noexcept -> void;
 
  private:
   size_t trial_id_;
   TrialState state_;
-  double value;
-  absl::flat_hash_map<std::string, double> internal_params_;
+  double value_;
+  absl::flat_hash_map<std::string, absl::any> internal_params_;
   absl::flat_hash_map<std::string, BaseDist> distributions_;
 };
 
@@ -128,19 +141,22 @@ class Trial {
   auto SuggestUniform(const std::string & name, const double & low, const double & high) noexcept -> const double;
   auto SuggestLogUniform(const std::string & name, const double & low, const double & high) noexcept -> const double;
   auto SuggestInt(const std::string & name, const int & low, const int & high) noexcept -> const int;
-  auto SuggestCategorical(const std::string & name, const std::list<absl::variant<bool, int, double, std::string> & choices) noexcept -> const absl::variant<bool, int, double, std::string>;
+  auto SuggestCategorical(const std::string & name, const std::vector<absl::variant<bool, int, double, std::string> & choices) noexcept -> const absl::variant<bool, int, double, std::string>;
 
  private:
   Study * study_ptr_;
   size_t trial_id_;
   TrialState state_;
-  auto suggest(const std::string & name, std::shared_ptr<BaseDist> distribution) -> absl::any;
+  auto suggest(const std::string & name, const BaseDist & distribution) -> const absl::any;
 };
 
 class Sampler {
 
  public:
-  auto SampleIndependent(Study * study, FrozenTrial & trial, const std::string & name, std::shared_ptr<BaseDist> distribution) -> std::any;
+  Sampler();
+
+  template <typename DistType>
+  auto SampleIndependent(Study * study, FrozenTrial & trial, const std::string & name, const DistType & distribution) -> std::any;
 
  private:
   absl::BitGen bitgen_;
@@ -151,7 +167,7 @@ class Study {
  public:
   Study();
   auto GetStorage() noexcept -> Storage;
-  auto SampleIndependent(FrozenTrial & trial, const std::string & name, const absl::flat_hash_map<std::string, absl::any> & distribution) -> absl::any;
+  auto SampleIndependent(FrozenTrial & trial, const std::string & name, const BaseDist & distribution) -> absl::any;
   auto Optimize(const absl::FunctionRef<const double(Trial)> objective, const size_t & n_trials) -> void;
 
  private:
