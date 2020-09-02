@@ -24,16 +24,6 @@ auto UniformDist::High() const noexcept -> const double {
   return high_;
 }
 
-template <typename T1>
-auto UniformDist::ToInternalReprImpl(const T1 & external_repr) const -> double {
-  static_assert(std::is_same<T1, double>::value, "UniformDist's `external_repr` must be double.");
-  return external_repr;
-}
-
-auto UniformDist::ToExternalReprImpl(const double & internal_repr) const -> absl::any {
-  return absl::any(internal_repr);
-}
-
 LogUniformDist::LogUniformDist(double low, double high) : low_{std::move(low)}, high_{std::move(high)} {}
 
 auto LogUniformDist::Low() const noexcept -> const double {
@@ -42,16 +32,6 @@ auto LogUniformDist::Low() const noexcept -> const double {
 
 auto LogUniformDist::High() const noexcept -> const double {
   return high_;
-}
-
-template <typename T1>
-auto LogUniformDist::ToInternalReprImpl(const T1 & external_repr) const -> double {
-  static_assert(std::is_same<T1, double>::value, "LogUniformDist's `external_repr` must be double.");
-  return external_repr;
-}
-
-auto LogUniformDist::ToExternalReprImpl(const double & internal_repr) const -> absl::any {
-  return absl::any(internal_repr);
 }
 
 IntUniformDist::IntUniformDist(int low, int high) : low_{std::move(low)}, high_{std::move(high)} {}
@@ -64,30 +44,12 @@ auto IntUniformDist::High() const noexcept -> const int {
   return high_;
 }
 
-template <typename T1>
-auto IntUniformDist::ToInternalReprImpl(const T1 & external_repr) const -> double {
-  static_assert(std::is_same<T1, int>::value, "IntUniformDist's `external_repr` must be int.");
-  return static_cast<double>(external_repr);
-}
+template <typename CategoryType>
+CategoricalDist::CategoricalDist(std::initializer_list<CategoryType> choices) : choices_(choices) {}
 
-auto IntUniformDist::ToExternalReprImpl(const double & internal_repr) const -> absl::any {
-  return absl::any(internal_repr);
-}
-
-CategoricalDist::CategoricalDist(std::initializer_list<absl::variant<bool, int, double, std::string> choices) : choices_(choices) {}
-
-auto CategoricalDist::Choices() const noexcept -> const std::list<absl::variant<bool, int, double, std::string> {
+template <typename CategoryType>
+auto CategoricalDist::Choices() const noexcept -> const std::vector<CategoryType> {
   return choices_;
-}
-
-template <typename T1>
-auto CategoricalDist::ToInternalReprImpl(const T1 & external_repr) const -> double {
-  static_assert(std::is_same<T1, absl::variant<bool, int, double, std::string>>::value, "CategoricalDist type mistmatch.");
-  return static_cast<double>(std::find(choices_.begin(), choices_.end(), external_repr) - choices_.begin());
-}
-
-auto CategoricalDist::ToExternalReprImpl(const double & external_repr) const -> absl::any {
-  return choices_.at(static_cast<int>(external_repr));
 }
 
 FrozenTrial::FrozenTrial(const size_t & trial_id, const TrialState & state)
@@ -101,7 +63,7 @@ auto FrozenTrial::Value() const noexcept -> const double {
   return value_;
 }
 
-auto FrozenTrial::GetParams() const -> const absl::flat_hash_map<std::string, double> {
+auto FrozenTrial::GetParams() const -> const absl::flat_hash_map<std::string, absl::any> {
   return internal_params_;
 }
 
@@ -118,7 +80,7 @@ auto FrozenTrial::SetState(const TrialState& state) noexcept -> void {
 }
 
 auto FrozenTrial::SetParam(const std::string & name, const absl::any param) noexcept -> void {
-  params_[name] = param;
+  internal_params_[name] = param;
 }
 
 Storage::Storage() : trials_{} {}
@@ -156,8 +118,6 @@ Trial::Trial(Study * study_ptr, const size_t& trial_id)
 
 auto Trial::suggest(const std::string & name, const BaseDist & distribution) -> const absl::any {
   auto trial = study_ptr_->GetStorage().GetTrial(trial_id_);
-  absl::any low_any = low;
-  absl::any high_any = high;
   auto param = study_ptr_->SampleIndependent(trial, name, distribution);
   study_ptr_->GetStorage().SetTrialParam(trial_id_, name, param);
   return param;
@@ -175,7 +135,8 @@ auto Trial::SuggestInt(const std::string & name, const int & low, const int & hi
   return static_cast<int>(suggest(name, IntUniformDist(low, high)));
 }
 
-auto Trial::SuggestCategorical(const std::string & name, const std::list<absl::variant<bool, int, double, std::string>> & choices) noexcept -> const absl::variant<bool, int, double, std::string> {
+template <typename CategoryType>
+auto Trial::SuggestCategorical(const std::string & name, const std::vector<CategoryType> & choices) noexcept -> const CategoryType {
   return suggest(name, CategoricalDist(choices));
 }
 
@@ -183,13 +144,13 @@ Sampler::Sampler() : bitgen_{} {}
 
 template <typename DistType>
 auto Sampler::SampleIndependent(Study * study, FrozenTrial & trial, const std::string & name, const DistType & distribution) -> absl::any {
-  if constexpr (std::is_same<DistType, UniformDist>::value) {
+  if (std::is_same<DistType, UniformDist>::value) {
     return absl::any(absl::Uniform<double>(bitgen_, distribution.Low(), distribution.High()));
-  } else if constexpr (std::is_same<DistType, LogUniformDist>::value) {
+  } else if (std::is_same<DistType, LogUniformDist>::value) {
     return absl::any(std::exp(absl::Uniform<double>(std::log(distribution.Low()), std::log(distribution.High()))));
-  } else if constexpr (std::is_same<DistType, IntUniformDist>::value) {
+  } else if (std::is_same<DistType, IntUniformDist>::value) {
     return absl::any(absl::Uniform<int>(bitgen_, distribution.Low(), distribution.High()));
-  } else if constexpr (std::is_same<DistType, CategoricalDist>::value) {
+  } else if (std::is_same<DistType, CategoricalDist>::value) {
     const size_t index = absl::Uniform<int>(bitgen_, 0, distribution.Choices().size());
     return absl::any(choices_.at(index));
   } else {
@@ -203,10 +164,11 @@ auto Study::GetStorage() noexcept -> Storage {
   return storage_;
 }
 
+template <typename DistType>
 auto Study::SampleIndependent(
     FrozenTrial & trial,
     const std::string & name,
-    const BaseDist & distribution) -> absl::any {
+    const DistType & distribution) -> absl::any {
   return sampler_.SampleIndependent(this, trial, name, distribution);
 }
 
