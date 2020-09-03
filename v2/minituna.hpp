@@ -18,6 +18,7 @@
 
 namespace minituna_v2 {
 
+
 enum class TrialState {
   Running,
   Completed,
@@ -59,17 +60,16 @@ class IntUniformDist : public BaseDist {
   int low_, high_;
 };
 
-template <typename CategoryType>
 class CategoricalDist : public BaseDist {
  public:
-  using type = CategoryType;
   CategoricalDist() = delete;
-  CategoricalDist(std::initializer_list<CategoryType> choices);
+  CategoricalDist(std::initializer_list<absl::variant<bool, int, double, std::string>> choices);
+  CategoricalDist(const std::vector<absl::variant<bool, int, double, std::string>> & choices);
 
-  auto Choices() const noexcept -> const std::vector<CategoryType>;
+  auto Choices() const noexcept -> const std::vector<absl::variant<bool, int, double, std::string>>;
 
  private:
-  std::vector<CategoryType> choices_;
+  std::vector<absl::variant<bool, int, double, std::string>> choices_;
 };
 
 class FrozenTrial {
@@ -117,8 +117,7 @@ class Trial {
   auto SuggestLogUniform(const std::string & name, const double & low, const double & high) noexcept -> const double;
   auto SuggestInt(const std::string & name, const int & low, const int & high) noexcept -> const int;
 
-  template <typename CategoryType>
-  auto SuggestCategorical(const std::string & name, const std::vector<CategoryType> & choices) noexcept -> const CategoryType;
+  auto SuggestCategorical(const std::string & name, const std::vector<absl::variant<bool, int, double, std::string>> & choices) noexcept -> const absl::variant<bool, int, double, std::string>;
 
  private:
   Study * study_ptr_;

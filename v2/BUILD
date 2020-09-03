@@ -12,6 +12,7 @@ cc_library(
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:any",
         "@com_google_absl//absl/types:variant",
+        "@com_google_glog//:glog",
     ],
     srcs = ["minituna.cpp"],
     hdrs = ["minituna.hpp"],

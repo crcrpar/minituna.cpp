@@ -13,6 +13,8 @@
 #include "absl/types/any.h"
 #include "absl/types/variant.h"
 
+#include "glog/logging.h"
+
 namespace minituna_v2 {
 
 UniformDist::UniformDist(double low, double high) : low_{std::move(low)}, high_{std::move(high)} {}
@@ -45,11 +47,15 @@ auto IntUniformDist::High() const noexcept -> const int {
   return high_;
 }
 
-template <typename CategoryType>
-CategoricalDist::CategoricalDist(std::initializer_list<CategoryType> choices) : choices_(choices) {}
+CategoricalDist::CategoricalDist(
+    std::initializer_list<absl::variant<bool, int, double, std::string>> choices
+  ) : choices_(choices) {}
 
-template <typename CategoryType>
-auto CategoricalDist::Choices() const noexcept -> const std::vector<CategoryType> {
+CategoricalDist::CategoricalDist(
+    const std::vector<absl::variant<bool, int, double, std::string>> & choices
+  ) : choices_(choices) {}
+
+auto CategoricalDist::Choices() const noexcept -> const std::vector<absl::variant<bool, int, double, std::string>> {
   return choices_;
 }
 
@@ -108,7 +114,11 @@ auto Storage::SetTrialState(const size_t& trial_id, const TrialState& state) -> 
   trials_[trial_id].SetState(state);
 }
 
-auto Storage::SetTrialParam(const size_t& trial_id, const std::string & name, BaseDist distribution, const absl::any& param) -> void {
+auto Storage::SetTrialParam(
+    const size_t& trial_id,
+    const std::string & name,
+    BaseDist distribution,
+    const absl::any& param) -> void {
   FrozenTrial& trial = trials_.at(trial_id);
   assert(!trial.IsFinished() && "Cannot update finished trial");
   trial.SetParam(name, param);
@@ -125,41 +135,90 @@ auto Trial::suggest(const std::string & name, const DistType & distribution) -> 
   return absl::any(param);
 }
 
-auto Trial::SuggestUniform(const std::string & name, const double & low, const double & high) noexcept -> const double {
+auto Trial::SuggestUniform(
+    const std::string & name,
+    const double & low,
+    const double & high) noexcept -> const double {
   return absl::any_cast<double>(suggest(name, UniformDist(low, high)));
 }
 
-auto Trial::SuggestLogUniform(const std::string & name, const double & low, const double & high) noexcept -> const double {
+auto Trial::SuggestLogUniform(
+    const std::string & name,
+    const double & low,
+    const double & high) noexcept -> const double {
   return absl::any_cast<double>(suggest(name, LogUniformDist(low, high)));
 }
 
-auto Trial::SuggestInt(const std::string & name, const int & low, const int & high) noexcept -> const int {
+auto Trial::SuggestInt(
+    const std::string & name,
+    const int & low,
+    const int & high) noexcept -> const int {
   return absl::any_cast<int>(suggest(name, IntUniformDist(low, high)));
 }
 
-template <typename CategoryType>
-auto Trial::SuggestCategorical(const std::string & name, const std::vector<CategoryType> & choices) noexcept -> const CategoryType {
+auto Trial::SuggestCategorical(
+    const std::string & name,
+    const std::vector<absl::variant<bool, int, double, std::string>> & choices
+  ) noexcept -> const absl::variant<bool, int, double, std::string> {
   auto categorical_dist = CategoricalDist(choices);
-  return absl::any_cast<CategoryType>(suggest(name, categorical_dist));
+  return absl::any_cast<absl::variant<bool, int, double, std::string>>(suggest(name, categorical_dist));
 }
 
 Sampler::Sampler() : bitgen_{} {}
 
 template <typename DistType>
-auto Sampler::SampleIndependent(Study * study, FrozenTrial & trial, const std::string & name, const DistType & distribution) -> absl::any {
-  if (std::is_same<DistType, UniformDist>::value) {
-    return absl::any(absl::Uniform<double>(bitgen_, distribution.Low(), distribution.High()));
-  } else if (std::is_same<DistType, LogUniformDist>::value) {
-    return absl::any(std::exp(absl::Uniform<double>(bitgen_, std::log(distribution.Low()), std::log(distribution.High()))));
-  } else if (std::is_same<DistType, IntUniformDist>::value) {
-    return absl::any(absl::Uniform<int>(bitgen_, distribution.Low(), distribution.High()));
-  } else if (std::is_same<DistType, CategoricalDist>::value) {
-    const size_t index = absl::Uniform<int>(bitgen_, 0, distribution.Choices().size());
-    return absl::any(choices_.at(index));
-  } else {
-    static_assert(false, "Invalid Distribution.");
-  }
+auto Sampler::SampleIndependent(
+    Study * study,
+    FrozenTrial & trial,
+    const std::string & name,
+    const DistType & distribution) -> absl::any {
+  LOG(WARNING) << name << " is invalid distribution";
+  return 0.0;
 }
+
+template <>
+auto Sampler::SampleIndependent<UniformDist>(
+    Study * study,
+    FrozenTrial & trial,
+    const std::string & name,
+    const UniformDist & distribution) -> absl::any {
+  return absl::any(absl::Uniform<double>(bitgen_, distribution.Low(), distribution.High()));
+}
+
+template <>
+auto Sampler::SampleIndependent<LogUniformDist>(
+    Study * study,
+    FrozenTrial & trial,
+    const std::string & name,
+    const LogUniformDist & distribution) -> absl::any {
+  return absl::any(
+      std::exp(
+        absl::Uniform<double>(
+          bitgen_, std::log(distribution.Low()), std::log(distribution.High())
+        )
+      )
+  );
+}
+
+template <>
+auto Sampler::SampleIndependent<IntUniformDist>(
+    Study * study,
+    FrozenTrial & trial,
+    const std::string & name,
+    const IntUniformDist & distribution) -> absl::any {
+  return absl::any(absl::Uniform<double>(bitgen_, distribution.Low(), distribution.High()));
+}
+
+template <>
+auto Sampler::SampleIndependent<CategoricalDist>(
+    Study * study,
+    FrozenTrial & trial,
+    const std::string & name,
+    const CategoricalDist & distribution) -> absl::any {
+  const size_t index = absl::Uniform<int>(bitgen_, 0, distribution.Choices().size());
+  return absl::any(distribution.Choices().at(index));
+}
+
 
 Study::Study() : storage_{}, sampler_{} {}
 
@@ -179,15 +238,15 @@ auto Study::Optimize(const absl::FunctionRef<const double(Trial)> objective, con
   for (size_t i = 0; i < n_trials; i++) {
     const size_t trial_id = storage_.CreateNewTrial();
     Trial trial(this, trial_id);
+    LOG(INFO) << "Trial " << trial_id << " is created.";
 
-    std::cout << "Trial ID: " << trial_id;
     try {
       const double value = objective(trial);
       storage_.SetTrialValue(trial_id, value);
       storage_.SetTrialState(trial_id, TrialState::Completed);
-      std::cout << ", Value: " << value << "\n";
+      LOG(INFO) << "Trial " << trial_id << "'s evaluated value is " << value << "\n";
     } catch (const std::exception& e) {
-      std::cerr << "Trial " << trial_id << " failed because " << e.what() << '\n';
+      LOG(INFO) << "Trial " << trial_id << " failed because " << e.what();
       storage_.SetTrialState(trial_id, TrialState::Failed);
     }
   }
