@@ -77,6 +77,7 @@ class FrozenTrial {
   FrozenTrial(const size_t & trial_id, const TrialState & state);
 
   auto IsFinished() const noexcept -> const bool;
+  auto Number() const noexcept -> const size_t;
   auto Value() const noexcept -> const double;
   auto GetParams() const -> const absl::flat_hash_map<std::string, absl::any>;
   auto SetValue(const double&) noexcept -> void;
@@ -99,7 +100,7 @@ class Storage {
   auto GetAllTrials() const noexcept -> std::vector<FrozenTrial>;
   auto SetTrialValue(const size_t & trial_id, const double & value) -> void;
   auto SetTrialState(const size_t & trial_id, const TrialState & state) -> void;
-  auto SetTrialParam(const size_t & trial_id, const std::string & name, std::shared_ptr<BaseDist> distribution, const double & value) -> void;
+  auto SetTrialParam(const size_t & trial_id, const std::string & name, BaseDist distribution, const absl::any & param) -> void;
 
  private:
   std::vector<FrozenTrial> trials_;
@@ -123,7 +124,9 @@ class Trial {
   Study * study_ptr_;
   size_t trial_id_;
   TrialState state_;
-  auto suggest(const std::string & name, const BaseDist & distribution) -> const absl::any;
+
+  template <typename DistType>
+  auto suggest(const std::string & name, const DistType & distribution) -> const absl::any;
 };
 
 class Sampler {

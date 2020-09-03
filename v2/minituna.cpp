@@ -99,15 +99,15 @@ auto Storage::GetAllTrials() const noexcept -> std::vector<FrozenTrial> {
   return trials_;
 }
 
-auto Storage::SetTrialValue(const size_t& trial_id, const double& value) noexcept -> void {
+auto Storage::SetTrialValue(const size_t& trial_id, const double& value) -> void {
   trials_[trial_id].SetValue(value);
 }
 
-auto Storage::SetTrialState(const size_t& trial_id, const TrialState& state) noexcept -> void {
+auto Storage::SetTrialState(const size_t& trial_id, const TrialState& state) -> void {
   trials_[trial_id].SetState(state);
 }
 
-auto Storage::SetTrialParam(const size_t& trial_id, const std::string & name, const absl::any& param) -> void {
+auto Storage::SetTrialParam(const size_t& trial_id, const std::string & name, BaseDist distribution, const absl::any& param) -> void {
   FrozenTrial& trial = trials_.at(trial_id);
   assert(!trial.IsFinished() && "Cannot update finished trial");
   trial.SetParam(name, param);
@@ -116,28 +116,30 @@ auto Storage::SetTrialParam(const size_t& trial_id, const std::string & name, co
 Trial::Trial(Study * study_ptr, const size_t& trial_id)
   : study_ptr_{study_ptr}, trial_id_{trial_id}, state_{TrialState::Running} {}
 
-auto Trial::suggest(const std::string & name, const BaseDist & distribution) -> const absl::any {
+template <typename DistType>
+auto Trial::suggest(const std::string & name, const DistType & distribution) -> const absl::any {
   auto trial = study_ptr_->GetStorage().GetTrial(trial_id_);
   auto param = study_ptr_->SampleIndependent(trial, name, distribution);
   study_ptr_->GetStorage().SetTrialParam(trial_id_, name, param);
-  return param;
+  return absl::any(param);
 }
 
 auto Trial::SuggestUniform(const std::string & name, const double & low, const double & high) noexcept -> const double {
-  return static_cast<double>(suggest(name, UniformDist(low, high)));
+  return absl::any_cast<double>(suggest(name, UniformDist(low, high)));
 }
 
 auto Trial::SuggestLogUniform(const std::string & name, const double & low, const double & high) noexcept -> const double {
-  return static_cast<double>(suggest(name, LogUniformDist(low, high)));
+  return absl::any_cast<double>(suggest(name, LogUniformDist(low, high)));
 }
 
 auto Trial::SuggestInt(const std::string & name, const int & low, const int & high) noexcept -> const int {
-  return static_cast<int>(suggest(name, IntUniformDist(low, high)));
+  return absl::any_cast<int>(suggest(name, IntUniformDist(low, high)));
 }
 
 template <typename CategoryType>
 auto Trial::SuggestCategorical(const std::string & name, const std::vector<CategoryType> & choices) noexcept -> const CategoryType {
-  return suggest(name, CategoricalDist(choices));
+  auto categorical_dist = CategoricalDist(choices);
+  return absl::any_cast<CategoryType>(suggest(name, categorical_dist));
 }
 
 Sampler::Sampler() : bitgen_{} {}
