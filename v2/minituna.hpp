@@ -146,7 +146,9 @@ class Study {
  public:
   Study();
   auto GetStorage() noexcept -> Storage;
-  auto SampleIndependent(FrozenTrial & trial, const std::string & name, const BaseDist & distribution) -> absl::any;
+
+  template <typename DistType>
+  auto SampleIndependent(FrozenTrial & trial, const std::string & name, const DistType & distribution) -> absl::any;
   auto Optimize(const absl::FunctionRef<const double(Trial)> objective, const size_t & n_trials) -> void;
 
  private:

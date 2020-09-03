@@ -9,6 +9,7 @@
 #include <string>
 #include <type_traits>
 
+#include "absl/random/random.h"
 #include "absl/types/any.h"
 #include "absl/types/variant.h"
 
@@ -120,7 +121,7 @@ template <typename DistType>
 auto Trial::suggest(const std::string & name, const DistType & distribution) -> const absl::any {
   auto trial = study_ptr_->GetStorage().GetTrial(trial_id_);
   auto param = study_ptr_->SampleIndependent(trial, name, distribution);
-  study_ptr_->GetStorage().SetTrialParam(trial_id_, name, param);
+  study_ptr_->GetStorage().SetTrialParam(trial_id_, name, distribution, param);
   return absl::any(param);
 }
 
@@ -149,7 +150,7 @@ auto Sampler::SampleIndependent(Study * study, FrozenTrial & trial, const std::s
   if (std::is_same<DistType, UniformDist>::value) {
     return absl::any(absl::Uniform<double>(bitgen_, distribution.Low(), distribution.High()));
   } else if (std::is_same<DistType, LogUniformDist>::value) {
-    return absl::any(std::exp(absl::Uniform<double>(std::log(distribution.Low()), std::log(distribution.High()))));
+    return absl::any(std::exp(absl::Uniform<double>(bitgen_, std::log(distribution.Low()), std::log(distribution.High()))));
   } else if (std::is_same<DistType, IntUniformDist>::value) {
     return absl::any(absl::Uniform<int>(bitgen_, distribution.Low(), distribution.High()));
   } else if (std::is_same<DistType, CategoricalDist>::value) {
