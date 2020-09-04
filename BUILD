@@ -14,3 +14,60 @@ cc_binary(
     ],
     srcs = ["v1_example.cpp"]
 )
+
+load("@rules_foreign_cc//tools/build_defs:cmake.bzl", "cmake_external")
+
+cmake_external(
+   name = "openblas",
+   # Values to be passed as -Dkey=value on the CMake command line;
+   # here are serving to provide some CMake script configuration options
+   cache_entries = {
+       "NOFORTRAN": "on",
+       "BUILD_WITHOUT_LAPACK": "no",
+   },
+   lib_source = "@openblas//:all",
+
+   # We are selecting the resulting static library to be passed in C/C++ provider
+   # as the result of the build;
+   # However, the cmake_external dependants could use other artefacts provided by the build,
+   # according to their CMake script
+   static_libraries = ["libopenblas.a"],
+)
+
+cmake_external(
+   name = "eigen",
+   # These options help CMake to find prebuilt OpenBLAS, which will be copied into
+   # $EXT_BUILD_DEPS/openblas by the cmake_external script
+   cache_entries = {
+       "BLA_VENDOR": "OpenBLAS",
+       "BLAS_LIBRARIES": "$EXT_BUILD_DEPS/openblas/lib/libopenblas.a",
+   },
+   headers_only = True,
+   lib_source = "@eigen//:all",
+   # Dependency on other cmake_external rule; can also depend on cc_import, cc_library rules
+   deps = [":openblas"],
+)
+
+cmake_external(
+    name = "rapidjson",
+    headers_only = True,
+    lib_source = "@rapidjson//:all",
+)
+
+cmake_external(
+    name = "shogun",
+    lib_source = "@shogun//:all",
+    deps = [
+        "eigen",
+        "rapidjson",
+    ]
+)
+
+cc_binary(
+    name = "v2_example",
+    deps = [
+        "//v2:minituna_v2",
+
+    ],
+    srcs = ["v2_example.cpp"]
+)
