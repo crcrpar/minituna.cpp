@@ -90,6 +90,7 @@ http_archive(
    strip_prefix = "eigen-git-mirror-3.3.5",
    urls = ["https://github.com/eigenteam/eigen-git-mirror/archive/3.3.5.tar.gz"],
 )
+
 # Rapid JSON source code repository
 http_archive(
    name = "rapidjson",
@@ -99,12 +100,10 @@ http_archive(
 )
 
 
-
 new_git_repository(
     name = "shogun",
     remote = "https://github.com/shogun-toolbox/shogun.git",
     branch = "f1167dc518ce2f660b8c1491e568d1da25e90d12",
     build_file_content = all_content,
     init_submodules = True,
-    # recursive_init_submodules = True,
 )

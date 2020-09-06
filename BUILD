@@ -42,7 +42,6 @@ cmake_external(
        "BLA_VENDOR": "OpenBLAS",
        "BLAS_LIBRARIES": "$EXT_BUILD_DEPS/openblas/lib/libopenblas.a",
    },
-   headers_only = True,
    lib_source = "@eigen//:all",
    # Dependency on other cmake_external rule; can also depend on cc_import, cc_library rules
    deps = [":openblas"],
@@ -50,24 +49,29 @@ cmake_external(
 
 cmake_external(
     name = "rapidjson",
-    headers_only = True,
     lib_source = "@rapidjson//:all",
 )
 
 cmake_external(
     name = "shogun",
     lib_source = "@shogun//:all",
+    cache_entries = {
+        "ENABLE_DOXYGEN": "OFF",
+        # "Eigen3_DIR": "",
+        # "RapidJSON_DIR": "",
+        "BUILD_META_EXAMPLES": "OFF",
+    },
     deps = [
-        "eigen",
-        "rapidjson",
-    ]
+        ":openblas",
+        ":eigen",
+        ":rapidjson",
+    ],
 )
 
 cc_binary(
     name = "v2_example",
     deps = [
         "//v2:minituna_v2",
-
     ],
     srcs = ["v2_example.cpp"]
 )
