@@ -41,7 +41,6 @@ http_archive(
     ],
 )
 
-
 ##################################################################################################
 #### CMake only dependencies
 ##################################################################################################
@@ -87,8 +86,8 @@ http_archive(
 http_archive(
    name = "eigen",
    build_file_content = all_content,
-   strip_prefix = "eigen-git-mirror-3.3.5",
-   urls = ["https://github.com/eigenteam/eigen-git-mirror/archive/3.3.5.tar.gz"],
+   strip_prefix = "eigen-git-mirror-3.3.4",
+   urls = ["https://github.com/eigenteam/eigen-git-mirror/archive/3.3.4.tar.gz"],
 )
 
 # Rapid JSON source code repository
@@ -99,6 +98,19 @@ http_archive(
    urls = ["https://github.com/Tencent/rapidjson/archive/ce81bc9edfe773667a7a4454ba81dac72ed4364c.zip"],
 )
 
+http_archive(
+    name = "spdlog",
+    build_file_content = all_content,
+    strip_prefix = "spdlog-1.3.1",
+    urls = ["https://github.com/gabime/spdlog/archive/v1.3.1.tar.gz"],
+)
+
+http_archive(
+    name = "com_google_benchmark",
+    build_file_content = all_content,
+    strip_prefix = "benchmark-1.5.1",
+    urls = ["https://github.com/google/benchmark/archive/v1.5.1.tar.gz"],
+)
 
 new_git_repository(
     name = "shogun",
