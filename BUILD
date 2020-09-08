@@ -36,14 +36,14 @@ cmake_external(
 
 cmake_external(
     name = "eigen",
+    lib_source = "@eigen//:all",
     # These options help CMake to find prebuilt OpenBLAS, which will be copied into
     # $EXT_BUILD_DEPS/openblas by the cmake_external script
     cache_entries = {
-       "BLA_VENDOR": "OpenBLAS",
+       "BLAS_VENDOR": "OpenBLAS",
        "BLAS_LIBRARIES": "$EXT_BUILD_DEPS/openblas/lib/libopenblas.a",
     },
     headers_only = True,
-    lib_source = "@eigen//:all",
     # Dependency on other cmake_external rule; can also depend on cc_import, cc_library rules
     deps = [":openblas"],
 )
@@ -51,27 +51,22 @@ cmake_external(
 cmake_external(
     name = "rapidjson",
     lib_source = "@rapidjson//:all",
-
     cache_entries = {
         "RAPIDJSON_BUILD_DOC": "OFF",
         "RAPIDJSON_BUILD_EXAMPLES": "OFF",
         "RAPIDJSON_BUILD_TESTS": "OFF",
     },
-
     headers_only = True,
 )
 
 cmake_external(
     name = "spdlog",
+    cache_entries = {
+        "SPDLOG_BUILD_BENCH": "OFF",
+        "SPDLOG_BUILD_ALL": "OFF",
+    },
     lib_source = "@spdlog//:all",
     headers_only = True,
-)
-
-cmake_external(
-    name = "benchmark",
-    lib_source = "@com_google_benchmark//:all",
-
-    static_libraries = ["libbenchmark.a"],
 )
 
 cmake_external(
@@ -81,14 +76,12 @@ cmake_external(
         "ENABLE_DOXYGEN": "OFF",
         "BUILD_META_EXAMPLES": "OFF",
         "Eigen3_DIR": "$EXT_BUILD_DEPS/",
-        "benchmark_DIR": "$EXT_BUILD_DEPS/",
     },
     deps = [
         ":openblas",
         ":eigen",
         ":rapidjson",
         ":spdlog",
-        ":benchmark"
         # "@com_google_benchmark//:benchmark",
     ],
     static_libraries = ["libshogun.a"],
