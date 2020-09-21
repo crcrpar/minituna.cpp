@@ -69,24 +69,6 @@ cmake_external(
     headers_only = True,
 )
 
-cmake_external(
-    name = "shogun",
-    lib_source = "@shogun//:all",
-    cache_entries = {
-        "ENABLE_DOXYGEN": "OFF",
-        "BUILD_META_EXAMPLES": "OFF",
-        "Eigen3_DIR": "$EXT_BUILD_DEPS/",
-    },
-    deps = [
-        ":openblas",
-        ":eigen",
-        ":rapidjson",
-        ":spdlog",
-        # "@com_google_benchmark//:benchmark",
-    ],
-    static_libraries = ["libshogun.a"],
-)
-
 cc_binary(
     name = "v2_example",
     deps = [

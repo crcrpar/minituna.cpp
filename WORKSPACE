@@ -118,4 +118,5 @@ new_git_repository(
     branch = "f1167dc518ce2f660b8c1491e568d1da25e90d12",
     build_file_content = all_content,
     init_submodules = True,
+    build_file = "//third_party/shogun",
 )
