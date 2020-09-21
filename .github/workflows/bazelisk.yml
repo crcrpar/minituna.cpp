@@ -15,17 +15,9 @@ jobs:
 
     - uses: actions/checkout@v2
 
-    - uses: actions/cache@v2
-      with:
-        path: |
-          output
-        key: minitunacpp-ci
-        restore_keys: |
-          minitunacpp-ci
-
     - name: Build
       run: |
-        bazelisk --output_base output build //...
+        bazelisk build //...
 
     - name: Run
       run: |
