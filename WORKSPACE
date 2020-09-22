@@ -112,11 +112,10 @@ http_archive(
     urls = ["https://github.com/google/benchmark/archive/v1.5.1.tar.gz"],
 )
 
-new_git_repository(
+http_archive(
     name = "shogun",
-    remote = "https://github.com/shogun-toolbox/shogun.git",
-    branch = "f1167dc518ce2f660b8c1491e568d1da25e90d12",
-    build_file_content = all_content,
-    init_submodules = True,
-    build_file = "//third_party/shogun",
+    urls = ["https://github.com/shogun-toolbox/shogun/archive/f1167dc518ce2f660b8c1491e568d1da25e90d12.zip"],
+    strip_prefix = "shogun-f1167dc518ce2f660b8c1491e568d1da25e90d12",
+    # build_file_content = all_content,
+    build_file = "//third_party:shogun.BUILD",
 )
